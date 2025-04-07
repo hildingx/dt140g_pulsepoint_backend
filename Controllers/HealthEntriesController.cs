@@ -145,6 +145,47 @@ namespace PulsePoint.Controllers
             return NoContent();
         }
 
+        [HttpGet("stats")]
+        [Authorize(Roles = "manager")]
+        public async Task<IActionResult> GetWorkplaceStats()
+        {
+            var username = User.FindFirstValue(ClaimTypes.Name);
+            if (username is null) return Unauthorized();
+
+            var manager = await _context.Users
+                .Include(u => u.Workplace)
+                .FirstOrDefaultAsync(u => u.UserName == username);
+
+            if (manager is null) return NotFound("Manager not found");
+
+            var workplaceId = manager.WorkplaceId;
+
+            var stats = await _context.HealthEntries
+                .Where(e => e.User.WorkplaceId == workplaceId)
+                .GroupBy(e => 1)
+                .Select(g => new
+                {
+                    AverageMood = g.Average(e => e.Mood),
+                    AverageSleep = g.Average(e => e.Sleep),
+                    AverageStress = g.Average(e => e.Stress),
+                    AverageActivity = g.Average(e => e.Activity),
+                    AverageNutrition = g.Average(e => e.Nutrition),
+                    EntryCount = g.Count()
+                })
+                .FirstOrDefaultAsync();
+
+            return Ok(stats ?? new
+            {
+                AverageMood = 0.0,
+                AverageSleep = 0.0,
+                AverageStress = 0.0,
+                AverageActivity = 0.0,
+                AverageNutrition = 0.0,
+                EntryCount = 0
+            });
+        }
+
+
         private bool HealthEntryExists(int id)
         {
             return _context.HealthEntries.Any(e => e.Id == id);
