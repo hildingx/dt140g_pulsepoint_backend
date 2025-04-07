@@ -6,7 +6,6 @@ namespace PulsePoint.Models
     {
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
-        public string? Role { get; set; }
         public int WorkplaceId { get; set; } // FK till Workplace
         public Workplace Workplace { get; set; } = null!; // Navigation property
 
