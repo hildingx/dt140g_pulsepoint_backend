@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PulsePoint.Data;
@@ -7,12 +8,14 @@ using PulsePoint.Models.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace PulsePoint.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class HealthEntriesController : ControllerBase
     {
         private readonly PulsePointDbContext _context;
@@ -24,9 +27,25 @@ namespace PulsePoint.Controllers
 
         // GET: api/HealthEntries
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<HealthEntry>>> GetHealthEntries()
+        public async Task<ActionResult<IEnumerable<HealthEntryResponseDto>>> GetHealthEntries()
         {
-            return await _context.HealthEntries.ToListAsync();
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            var entries = await _context.HealthEntries
+                .Where(e => e.UserId == userId)
+                .Select(e => new HealthEntryResponseDto
+                {
+                    Id = e.Id,
+                    Mood = e.Mood,
+                    Sleep = e.Sleep,
+                    Stress = e.Stress,
+                    Activity = e.Activity,
+                    Nutrition = e.Nutrition,
+                    Date = e.Date
+                })
+                .ToListAsync();
+
+            return Ok(entries);
         }
 
         // GET: api/HealthEntries/5
@@ -77,8 +96,10 @@ namespace PulsePoint.Controllers
         // POST: api/HealthEntries
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<IActionResult> PostHealthEntry(HealthEntryDto dto)
+        public async Task<IActionResult> PostHealthEntry(HealthEntryCreateDto dto)
         {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
             var entry = new HealthEntry
             {
                 Mood = dto.Mood,
@@ -87,14 +108,26 @@ namespace PulsePoint.Controllers
                 Activity = dto.Activity,
                 Nutrition = dto.Nutrition,
                 Date = DateTime.Today,
-                UserId = dto.UserId
+                UserId = userId
             };
 
             _context.HealthEntries.Add(entry);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetHealthEntry", new { id = entry.Id }, entry);
+            var response = new HealthEntryResponseDto
+            {
+                Id = entry.Id,
+                Mood = entry.Mood,
+                Sleep = entry.Sleep,
+                Stress = entry.Stress,
+                Activity = entry.Activity,
+                Nutrition = entry.Nutrition,
+                Date = entry.Date
+            };
+
+            return CreatedAtAction(nameof(GetHealthEntry), new { id = entry.Id }, response);
         }
+
 
         // DELETE: api/HealthEntries/5
         [HttpDelete("{id}")]
