@@ -1,4 +1,6 @@
-﻿namespace PulsePoint.Models
+﻿using System.Text.Json.Serialization;
+
+namespace PulsePoint.Models
 {
     public class HealthEntry
     {
