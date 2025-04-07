@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PulsePoint.Data;
 using PulsePoint.Models;
+using PulsePoint.Models.DTOs;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PulsePoint.Controllers
 {
@@ -76,14 +77,23 @@ namespace PulsePoint.Controllers
         // POST: api/HealthEntries
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<HealthEntry>> PostHealthEntry(HealthEntry healthEntry)
+        public async Task<IActionResult> PostHealthEntry(HealthEntryDto dto)
         {
-            healthEntry.Date = DateTime.Today; // Sätter dagens datum som standardvärde
+            var entry = new HealthEntry
+            {
+                Mood = dto.Mood,
+                Sleep = dto.Sleep,
+                Stress = dto.Stress,
+                Activity = dto.Activity,
+                Nutrition = dto.Nutrition,
+                Date = DateTime.Today,
+                UserId = dto.UserId
+            };
 
-            _context.HealthEntries.Add(healthEntry);
+            _context.HealthEntries.Add(entry);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetHealthEntry", new { id = healthEntry.Id }, healthEntry);
+            return CreatedAtAction("GetHealthEntry", new { id = entry.Id }, entry);
         }
 
         // DELETE: api/HealthEntries/5
