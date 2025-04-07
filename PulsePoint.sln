@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.35906.104 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PulsePoint", "PulsePoint.csproj", "{E04C63BC-3C97-4FCE-BDE0-859CCD92ECAC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E04C63BC-3C97-4FCE-BDE0-859CCD92ECAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E04C63BC-3C97-4FCE-BDE0-859CCD92ECAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E04C63BC-3C97-4FCE-BDE0-859CCD92ECAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E04C63BC-3C97-4FCE-BDE0-859CCD92ECAC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EB38BDCE-0E1F-4041-BAB4-9D968EF66187}
+	EndGlobalSection
+EndGlobal
