@@ -8,6 +8,8 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+
 // Registrera controllers
 builder.Services.AddControllers();
 
@@ -50,8 +52,13 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-
 var app = builder.Build();
+
+builder.Configuration
+    .SetBasePath(app.Environment.ContentRootPath)
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddUserSecrets<Program>() // Läs user secrets automatiskt
+    .AddEnvironmentVariables();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
