@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using PulsePoint.Models;
 using PulsePoint.Models.DTOs;
+using PulsePoint.Services;
 using System.Security.Claims;
 
 namespace PulsePoint.Controllers
@@ -13,11 +14,16 @@ namespace PulsePoint.Controllers
     {
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
+        private readonly JwtService _jwtService;
 
-        public AuthController(UserManager<User> userManager, SignInManager<User> signInManager)
+        public AuthController(
+            UserManager<User> userManager,
+            SignInManager<User> signInManager,
+            JwtService jwtService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _jwtService = jwtService;
         }
 
         [HttpGet("me")]
@@ -80,16 +86,18 @@ namespace PulsePoint.Controllers
 
         // POST: api/auth/login
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginDto dto)
+        public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var result = await _signInManager.PasswordSignInAsync(dto.Username, dto.Password, isPersistent: false, lockoutOnFailure: false);
+            var user = await _userManager.FindByNameAsync(dto.Username);
+            if (user == null) return BadRequest("Felaktigt användarnamn eller lösenord");
 
-            if (!result.Succeeded)
-            {
-                return Unauthorized(new { message = "Invalid username or password." });
-            }
+            var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, false);
+            if (!result.Succeeded) return BadRequest("Felaktigt användarnamn eller lösenord");
 
-            return Ok(new { message = "Login successful." });
+            var roles = await _userManager.GetRolesAsync(user);
+            var token = _jwtService.GenerateToken(user, roles);
+
+            return Ok(new{ token });
         }
     }
 }
