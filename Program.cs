@@ -8,7 +8,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
+LoadEnvFile();
 
 // Registrera controllers
 builder.Services.AddControllers();
@@ -92,5 +92,23 @@ static async Task SeedRoles(WebApplication app)
         {
             await roleManager.CreateAsync(new IdentityRole<int>(role));
         }
+    }
+}
+
+void LoadEnvFile(string path = ".env")
+{
+    if (!File.Exists(path)) return;
+
+    foreach (var line in File.ReadAllLines(path))
+    {
+        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
+
+        var parts = line.Split('=', 2);
+        if (parts.Length != 2) continue;
+
+        var key = parts[0].Trim();
+        var value = parts[1].Trim().Trim('"');
+
+        Environment.SetEnvironmentVariable(key, value);
     }
 }

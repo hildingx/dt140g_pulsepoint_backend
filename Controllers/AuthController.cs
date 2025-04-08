@@ -30,13 +30,13 @@ namespace PulsePoint.Controllers
         [Authorize]
         public async Task<IActionResult> Me()
         {
-            var username = User.FindFirstValue(ClaimTypes.Name);
-            if (username == null)
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
             {
                 return Unauthorized(new { message = "Invalid token or not logged in." });
             }
 
-            var user = await _userManager.FindByNameAsync(username);
+            var user = await _userManager.FindByIdAsync(userIdClaim);
 
             if (user == null)
                 return NotFound();

@@ -149,12 +149,20 @@ namespace PulsePoint.Controllers
         [Authorize(Roles = "manager")]
         public async Task<IActionResult> GetWorkplaceStats()
         {
-            var username = User.FindFirstValue(ClaimTypes.Name);
-            if (username is null) return Unauthorized();
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userIdClaim is null)
+            {
+                return Unauthorized(new { message = "Invalid token or not logged in." });
+            }
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "Invalid user ID in token." });
+            }
 
             var manager = await _context.Users
                 .Include(u => u.Workplace)
-                .FirstOrDefaultAsync(u => u.UserName == username);
+                .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (manager is null) return NotFound("Manager not found");
 
@@ -183,6 +191,48 @@ namespace PulsePoint.Controllers
                 AverageNutrition = 0.0,
                 EntryCount = 0
             });
+        }
+
+        [HttpGet("stats/daily")]
+        [Authorize(Roles = "manager")]
+        public async Task<IActionResult> GetDailyStatsForWorkplace()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userIdClaim is null)
+            {
+                return Unauthorized(new { message = "Invalid token or not logged in." });
+            }
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "Invalid user ID in token." });
+            }
+
+            var manager = await _context.Users
+                .Include(u => u.Workplace)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (manager is null) return NotFound("Manager not found");
+
+            var workplaceId = manager.WorkplaceId;
+
+            var dailyStats = await _context.HealthEntries
+                .Where(e => e.User.WorkplaceId == workplaceId)
+                .GroupBy(e => e.Date.Date)
+                .Select(g => new DailyWorkplaceStatsDto
+                {
+                    Date = DateOnly.FromDateTime(g.Key),
+                    AverageMood = g.Average(e => e.Mood),
+                    AverageSleep = g.Average(e => e.Sleep),
+                    AverageStress = g.Average(e => e.Stress),
+                    AverageActivity = g.Average(e => e.Activity),
+                    AverageNutrition = g.Average(e => e.Nutrition),
+                    EntryCount = g.Count()
+                })
+                .OrderBy(s => s.Date)
+                .ToListAsync();
+
+            return Ok(dailyStats);
         }
 
 
