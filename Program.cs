@@ -13,6 +13,10 @@ LoadEnvFile();
 // Registrera controllers
 builder.Services.AddControllers();
 
+// Registrera services
+builder.Services.AddScoped<IHealthEntryService, HealthEntryService>();
+
+
 // Konfigurera databaskoppling mot MySQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<PulsePointDbContext>(options =>

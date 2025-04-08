@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using PulsePoint.Data;
 using PulsePoint.Models;
 using PulsePoint.Models.DTOs;
+using PulsePoint.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,11 +19,11 @@ namespace PulsePoint.Controllers
     [Authorize]
     public class HealthEntriesController : ControllerBase
     {
-        private readonly PulsePointDbContext _context;
+        private readonly IHealthEntryService _healthEntryService;
 
-        public HealthEntriesController(PulsePointDbContext context)
+        public HealthEntriesController(IHealthEntryService healthEntryService)
         {
-            _context = context;
+            _healthEntryService = healthEntryService;
         }
 
         // GET: api/HealthEntries
@@ -30,21 +31,7 @@ namespace PulsePoint.Controllers
         public async Task<ActionResult<IEnumerable<HealthEntryResponseDto>>> GetHealthEntries()
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-            var entries = await _context.HealthEntries
-                .Where(e => e.UserId == userId)
-                .Select(e => new HealthEntryResponseDto
-                {
-                    Id = e.Id,
-                    Mood = e.Mood,
-                    Sleep = e.Sleep,
-                    Stress = e.Stress,
-                    Activity = e.Activity,
-                    Nutrition = e.Nutrition,
-                    Date = e.Date
-                })
-                .ToListAsync();
-
+            var entries = await _healthEntryService.GetEntriesForUserAsync(userId);
             return Ok(entries);
         }
 
@@ -52,43 +39,23 @@ namespace PulsePoint.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<HealthEntry>> GetHealthEntry(int id)
         {
-            var healthEntry = await _context.HealthEntries.FindAsync(id);
-
-            if (healthEntry == null)
-            {
-                return NotFound();
-            }
-
-            return healthEntry;
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var entry = await _healthEntryService.GetEntryByIdAsync(id, userId);
+            if (entry == null) return NotFound();
+            return Ok(entry);
         }
 
         // PUT: api/HealthEntries/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutHealthEntry(int id, HealthEntry healthEntry)
+        public async Task<IActionResult> PutHealthEntry(int id, HealthEntryRequestDto dto)
         {
-            if (id != healthEntry.Id)
-            {
-                return BadRequest();
-            }
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-            _context.Entry(healthEntry).State = EntityState.Modified;
+            var success = await _healthEntryService.UpdateEntryAsync(id, userId, dto);
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!HealthEntryExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            if (!success)
+                return NotFound(); // Antingen entry saknas, inte användarens, eller fel vid update
 
             return NoContent();
         }
@@ -96,149 +63,46 @@ namespace PulsePoint.Controllers
         // POST: api/HealthEntries
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<IActionResult> PostHealthEntry(HealthEntryCreateDto dto)
+        public async Task<IActionResult> PostHealthEntry(HealthEntryRequestDto dto)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var response = await _healthEntryService.CreateEntryAsync(userId, dto);
 
-            var entry = new HealthEntry
-            {
-                Mood = dto.Mood,
-                Sleep = dto.Sleep,
-                Stress = dto.Stress,
-                Activity = dto.Activity,
-                Nutrition = dto.Nutrition,
-                Date = DateTime.Today,
-                UserId = userId
-            };
-
-            _context.HealthEntries.Add(entry);
-            await _context.SaveChangesAsync();
-
-            var response = new HealthEntryResponseDto
-            {
-                Id = entry.Id,
-                Mood = entry.Mood,
-                Sleep = entry.Sleep,
-                Stress = entry.Stress,
-                Activity = entry.Activity,
-                Nutrition = entry.Nutrition,
-                Date = entry.Date
-            };
-
-            return CreatedAtAction(nameof(GetHealthEntry), new { id = entry.Id }, response);
+            return CreatedAtAction(nameof(GetHealthEntry), new { id = response.Id }, response);
         }
+
 
 
         // DELETE: api/HealthEntries/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteHealthEntry(int id)
         {
-            var healthEntry = await _context.HealthEntries.FindAsync(id);
-            if (healthEntry == null)
-            {
-                return NotFound();
-            }
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var deleted = await _healthEntryService.DeleteEntryAsync(id, userId);
 
-            _context.HealthEntries.Remove(healthEntry);
-            await _context.SaveChangesAsync();
+            if (!deleted)
+                return NotFound();
 
             return NoContent();
         }
 
-        [HttpGet("stats")]
-        [Authorize(Roles = "manager")]
-        public async Task<IActionResult> GetWorkplaceStats()
-        {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userIdClaim is null)
-            {
-                return Unauthorized(new { message = "Invalid token or not logged in." });
-            }
-
-            if (!int.TryParse(userIdClaim, out var userId))
-            {
-                return Unauthorized(new { message = "Invalid user ID in token." });
-            }
-
-            var manager = await _context.Users
-                .Include(u => u.Workplace)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-            if (manager is null) return NotFound("Manager not found");
-
-            var workplaceId = manager.WorkplaceId;
-
-            var stats = await _context.HealthEntries
-                .Where(e => e.User.WorkplaceId == workplaceId)
-                .GroupBy(e => 1)
-                .Select(g => new
-                {
-                    AverageMood = g.Average(e => e.Mood),
-                    AverageSleep = g.Average(e => e.Sleep),
-                    AverageStress = g.Average(e => e.Stress),
-                    AverageActivity = g.Average(e => e.Activity),
-                    AverageNutrition = g.Average(e => e.Nutrition),
-                    EntryCount = g.Count()
-                })
-                .FirstOrDefaultAsync();
-
-            return Ok(stats ?? new
-            {
-                AverageMood = 0.0,
-                AverageSleep = 0.0,
-                AverageStress = 0.0,
-                AverageActivity = 0.0,
-                AverageNutrition = 0.0,
-                EntryCount = 0
-            });
-        }
 
         [HttpGet("stats/daily")]
         [Authorize(Roles = "manager")]
         public async Task<IActionResult> GetDailyStatsForWorkplace()
         {
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userIdClaim is null)
+            if (userIdClaim is null || !int.TryParse(userIdClaim, out var userId))
             {
-                return Unauthorized(new { message = "Invalid token or not logged in." });
+                return Unauthorized(new { message = "Invalid token or user ID." });
             }
 
-            if (!int.TryParse(userIdClaim, out var userId))
-            {
-                return Unauthorized(new { message = "Invalid user ID in token." });
-            }
+            var stats = await _healthEntryService.GetDailyStatsForWorkplaceAsync(userId);
 
-            var manager = await _context.Users
-                .Include(u => u.Workplace)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            if (stats.Count == 0)
+                return NotFound("No data found or invalid manager.");
 
-            if (manager is null) return NotFound("Manager not found");
-
-            var workplaceId = manager.WorkplaceId;
-
-            var dailyStats = await _context.HealthEntries
-                .Where(e => e.User.WorkplaceId == workplaceId)
-                .GroupBy(e => e.Date.Date)
-                .Select(g => new DailyWorkplaceStatsDto
-                {
-                    Date = DateOnly.FromDateTime(g.Key),
-                    AverageMood = g.Average(e => e.Mood),
-                    AverageSleep = g.Average(e => e.Sleep),
-                    AverageStress = g.Average(e => e.Stress),
-                    AverageActivity = g.Average(e => e.Activity),
-                    AverageNutrition = g.Average(e => e.Nutrition),
-                    EntryCount = g.Count()
-                })
-                .OrderBy(s => s.Date)
-                .ToListAsync();
-
-            return Ok(dailyStats);
-        }
-
-
-        private bool HealthEntryExists(int id)
-        {
-            return _context.HealthEntries.Any(e => e.Id == id);
+            return Ok(stats);
         }
     }
 }

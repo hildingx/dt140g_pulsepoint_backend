@@ -1,6 +1,6 @@
 ﻿namespace PulsePoint.Models.DTOs
 {
-    public class HealthEntryCreateDto
+    public class HealthEntryRequestDto
     {
         public int Mood { get; set; }
         public int Sleep { get; set; }
