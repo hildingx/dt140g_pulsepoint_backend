@@ -15,71 +15,28 @@ namespace PulsePoint.Controllers
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
         private readonly JwtService _jwtService;
+        private readonly IAuthService _authService;
 
         public AuthController(
             UserManager<User> userManager,
             SignInManager<User> signInManager,
-            JwtService jwtService)
+            JwtService jwtService,
+            IAuthService authService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _jwtService = jwtService;
-        }
-
-        [HttpGet("me")]
-        [Authorize]
-        public async Task<IActionResult> Me()
-        {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-            {
-                return Unauthorized(new { message = "Invalid token or not logged in." });
-            }
-
-            var user = await _userManager.FindByIdAsync(userIdClaim);
-
-            if (user == null)
-                return NotFound();
-
-            var roles = await _userManager.GetRolesAsync(user);
-
-            return Ok(new
-            {
-                user.Id,
-                user.UserName,
-                user.FirstName,
-                user.LastName,
-                user.WorkplaceId,
-                Roles = roles
-            });
+            _authService = authService;
         }
 
         // POST: api/auth/register
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
-            var user = new User
-            {
-                UserName = dto.Username,
-                FirstName = dto.FirstName,
-                LastName = dto.LastName,
-                WorkplaceId = dto.WorkplaceId
-            };
+            var (success, errors) = await _authService.RegisterAsync(dto);
 
-            var result = await _userManager.CreateAsync(user, dto.Password);
-
-            if (!result.Succeeded)
-            {
-                return BadRequest(result.Errors);
-            }
-
-            // Skicka inte vidare om registreringen inte lyckades
-            await _userManager.AddToRoleAsync(user, "User");
-
-            if (!result.Succeeded)
-            {
-                return BadRequest(result.Errors);
-            }
+            if (!success)
+                return BadRequest(errors);
 
             return Ok(new { message = "User registered successfully." });
         }
@@ -88,16 +45,29 @@ namespace PulsePoint.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var user = await _userManager.FindByNameAsync(dto.Username);
-            if (user == null) return BadRequest("Felaktigt användarnamn eller lösenord");
+            var (token, username, roles) = await _authService.LoginAsync(dto);
 
-            var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, false);
-            if (!result.Succeeded) return BadRequest("Felaktigt användarnamn eller lösenord");
+            if (token is null)
+                return BadRequest("Felaktigt användarnamn eller lösenord");
 
-            var roles = await _userManager.GetRolesAsync(user);
-            var token = _jwtService.GenerateToken(user, roles);
+            return Ok(new
+            {
+                token,
+                username,
+                roles
+            });
+        }
 
-            return Ok(new{ token });
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<IActionResult> Me()
+        {
+            var userInfo = await _authService.GetCurrentUserAsync(User);
+
+            if (userInfo == null)
+                return Unauthorized(new { message = "Invalid token or not logged in." });
+
+            return Ok(userInfo);
         }
     }
 }

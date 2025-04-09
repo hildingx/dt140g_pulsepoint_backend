@@ -8,7 +8,7 @@ namespace PulsePoint.Services
         Task<List<HealthEntryResponseDto>> GetEntriesForUserAsync(int userId);
 
         // GET :id
-        Task<List<HealthEntryResponseDto>> GetEntryByIdAsync(int id, int userId);
+        Task<HealthEntryResponseDto?> GetEntryByIdAsync(int id, int userId);
 
         // PUT :id
         Task<bool> UpdateEntryAsync(int id, int userId, HealthEntryRequestDto dto);
