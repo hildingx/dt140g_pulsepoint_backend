@@ -2,39 +2,40 @@
 using PulsePoint.Data;
 using PulsePoint.Models;
 using PulsePoint.Models.DTOs;
+using PulsePoint.Repositories;
 
 namespace PulsePoint.Services
 {
     public class HealthEntryService : IHealthEntryService
     {
+        private readonly IHealthEntryRepository _repo;
         private readonly PulsePointDbContext _context;
 
-        public HealthEntryService(PulsePointDbContext context)
+        public HealthEntryService(IHealthEntryRepository repo, PulsePointDbContext context)
         {
+            _repo = repo;
             _context = context;
         }
 
         public async Task<List<HealthEntryResponseDto>> GetEntriesForUserAsync(int userId)
         {
-            return await _context.HealthEntries
-                .Where(e => e.UserId == userId)
-                .Select(e => new HealthEntryResponseDto
-                {
-                    Id = e.Id,
-                    Mood = e.Mood,
-                    Sleep = e.Sleep,
-                    Stress = e.Stress,
-                    Activity = e.Activity,
-                    Nutrition = e.Nutrition,
-                    Date = e.Date
-                })
-                .ToListAsync();
+            var entries = await _repo.GetByUserIdAsync(userId);
+
+            return entries.Select(e => new HealthEntryResponseDto
+            {
+                Id = e.Id,
+                Mood = e.Mood,
+                Sleep = e.Sleep,
+                Stress = e.Stress,
+                Activity = e.Activity,
+                Nutrition = e.Nutrition,
+                Date = e.Date
+            }).ToList();
         }
 
         public async Task<HealthEntryResponseDto?> GetEntryByIdAsync(int id, int userId)
         {
-            var entry = await _context.HealthEntries
-                .FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId);
+            var entry = await _repo.GetByIdAsync(id, userId);
 
             if (entry == null) return null;
 
@@ -52,29 +53,17 @@ namespace PulsePoint.Services
 
         public async Task<bool> UpdateEntryAsync(int id, int userId, HealthEntryRequestDto dto)
         {
-            var entry = await _context.HealthEntries
-                .FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId);
+            var entry = await _repo.GetByIdAsync(id, userId);
+            if (entry == null) return false;
 
-            if (entry == null)
-                return false;
-
-            // Uppdatera endast tillåtna fält
+            // Endast tillåtna fält uppdateras
             entry.Mood = dto.Mood;
             entry.Sleep = dto.Sleep;
             entry.Stress = dto.Stress;
             entry.Activity = dto.Activity;
             entry.Nutrition = dto.Nutrition;
 
-            try
-            {
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch
-            {
-                // TODO: logga internt vid behov
-                return false;
-            }
+            return await _repo.UpdateAsync(entry);
         }
 
         public async Task<HealthEntryResponseDto> CreateEntryAsync(int userId, HealthEntryRequestDto dto)
@@ -90,8 +79,7 @@ namespace PulsePoint.Services
                 UserId = userId
             };
 
-            _context.HealthEntries.Add(entry);
-            await _context.SaveChangesAsync();
+            await _repo.AddAsync(entry);
 
             return new HealthEntryResponseDto
             {
@@ -107,29 +95,18 @@ namespace PulsePoint.Services
 
         public async Task<bool> DeleteEntryAsync(int id, int userId)
         {
-            var entry = await _context.HealthEntries
-                .FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId);
-
-            if (entry == null)
-                return false;
-
-            _context.HealthEntries.Remove(entry);
-            await _context.SaveChangesAsync();
-            return true;
+            return await _repo.DeleteAsync(id, userId);
         }
 
         public async Task<List<DailyWorkplaceStatsDto>> GetDailyStatsForWorkplaceAsync(int managerUserId)
         {
-            var manager = await _context.Users
+            var entries = await _context.Users
                 .Include(u => u.Workplace)
-                .FirstOrDefaultAsync(u => u.Id == managerUserId);
+                .Where(u => u.Id == managerUserId)
+                .SelectMany(u => u.Workplace.Users.SelectMany(x => x.HealthEntries))
+                .ToListAsync();
 
-            if (manager is null) return new();
-
-            var workplaceId = manager.WorkplaceId;
-
-            var dailyStats = await _context.HealthEntries
-                .Where(e => e.User.WorkplaceId == workplaceId)
+            var dailyStats = entries
                 .GroupBy(e => e.Date.Date)
                 .Select(g => new DailyWorkplaceStatsDto
                 {
@@ -142,14 +119,11 @@ namespace PulsePoint.Services
                     EntryCount = g.Count()
                 })
                 .OrderBy(s => s.Date)
-                .ToListAsync();
+                .ToList();
 
             return dailyStats;
         }
 
-        public bool EntryExists(int id)
-        {
-            return _context.HealthEntries.Any(e => e.Id == id);
-        }
+        public bool EntryExists(int id) => _repo.Exists(id);
     }
 }

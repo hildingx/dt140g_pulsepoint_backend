@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-using PulsePoint.Models;
+﻿using PulsePoint.Models;
 using PulsePoint.Models.DTOs;
 using System.Security.Claims;
 
@@ -7,17 +6,12 @@ namespace PulsePoint.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly UserManager<User> _userManager;
-        private readonly SignInManager<User> _signInManager;
+        private readonly IUserRepository _userRepo;
         private readonly JwtService _jwtService;
 
-        public AuthService(
-            UserManager<User> userManager,
-            SignInManager<User> signInManager,
-            JwtService jwtService)
+        public AuthService(IUserRepository userRepo, JwtService jwtService)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
+            _userRepo = userRepo;
             _jwtService = jwtService;
         }
 
@@ -31,25 +25,25 @@ namespace PulsePoint.Services
                 WorkplaceId = dto.WorkplaceId
             };
 
-            var result = await _userManager.CreateAsync(user, dto.Password);
+            var result = await _userRepo.CreateAsync(user, dto.Password);
 
             if (!result.Succeeded)
                 return (false, result.Errors.Select(e => e.Description));
 
-            await _userManager.AddToRoleAsync(user, "User");
+            await _userRepo.AddToRoleAsync(user, "User");
 
             return (true, Enumerable.Empty<string>());
         }
 
         public async Task<(string? Token, string? Username, IList<string> Roles)> LoginAsync(LoginDto dto)
         {
-            var user = await _userManager.FindByNameAsync(dto.Username);
+            var user = await _userRepo.FindByUsernameAsync(dto.Username);
             if (user == null) return (null, null, new List<string>());
 
-            var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, false);
+            var result = await _userRepo.CheckPasswordAsync(user, dto.Password);
             if (!result.Succeeded) return (null, null, new List<string>());
 
-            var roles = await _userManager.GetRolesAsync(user);
+            var roles = await _userRepo.GetRolesAsync(user);
             var token = _jwtService.GenerateToken(user, roles);
 
             return (token, user.UserName, roles);
@@ -60,10 +54,10 @@ namespace PulsePoint.Services
             var userIdClaim = userClaims.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userIdClaim == null) return null;
 
-            var user = await _userManager.FindByIdAsync(userIdClaim);
+            var user = await _userRepo.FindByIdAsync(userIdClaim);
             if (user == null) return null;
 
-            var roles = await _userManager.GetRolesAsync(user);
+            var roles = await _userRepo.GetRolesAsync(user);
 
             return new
             {

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PulsePoint.Data;
 using PulsePoint.Models;
+using PulsePoint.Repositories;
 using PulsePoint.Services;
 using System.Text;
 
@@ -15,7 +16,10 @@ builder.Services.AddControllers();
 
 // Registrera services
 builder.Services.AddScoped<IHealthEntryService, HealthEntryService>();
-
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IWorkplaceService, WorkplaceService>();
+builder.Services.AddScoped<IHealthEntryRepository, HealthEntryRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Konfigurera databaskoppling mot MySQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");

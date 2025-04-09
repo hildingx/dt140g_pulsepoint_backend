@@ -1,4 +1,5 @@
-﻿using PulsePoint.Models.DTOs;
+﻿using PulsePoint.Models;
+using PulsePoint.Models.DTOs;
 
 namespace PulsePoint.Services
 {
