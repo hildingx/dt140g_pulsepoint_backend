@@ -1,12 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PulsePoint.Data;
 using PulsePoint.Models;
+using PulsePoint.Services;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PulsePoint.Controllers
 {
@@ -14,95 +16,48 @@ namespace PulsePoint.Controllers
     [ApiController]
     public class WorkplacesController : ControllerBase
     {
-        private readonly PulsePointDbContext _context;
+        private readonly IWorkplaceService _workplaceService;
 
-        public WorkplacesController(PulsePointDbContext context)
+        public WorkplacesController(IWorkplaceService workplaceService)
         {
-            _context = context;
+            _workplaceService = workplaceService;
         }
 
         // GET: api/Workplaces
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Workplace>>> GetWorkplaces()
         {
-            return await _context.Workplaces.ToListAsync();
-        }
-
-        // GET: api/Workplaces/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Workplace>> GetWorkplace(int id)
-        {
-            var workplace = await _context.Workplaces.FindAsync(id);
-
-            if (workplace == null)
-            {
-                return NotFound();
-            }
-
-            return workplace;
-        }
-
-        // PUT: api/Workplaces/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutWorkplace(int id, Workplace workplace)
-        {
-            if (id != workplace.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(workplace).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!WorkplaceExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
+            var workplaces = await _workplaceService.GetAllAsync();
+            return Ok(workplaces);
         }
 
         // POST: api/Workplaces
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
+        [Authorize(Roles = "admin")]
         public async Task<ActionResult<Workplace>> PostWorkplace(Workplace workplace)
         {
-            _context.Workplaces.Add(workplace);
-            await _context.SaveChangesAsync();
+            var created = await _workplaceService.CreateAsync(workplace);
+            return CreatedAtAction(nameof(GetWorkplaces), new { id = created.Id }, created);
+        }
 
-            return CreatedAtAction("GetWorkplace", new { id = workplace.Id }, workplace);
+        // PUT: api/Workplaces/5
+        [HttpPut("{id}")]
+        [Authorize(Roles = "admin")]
+        public async Task<IActionResult> PutWorkplace(int id, Workplace workplace)
+        {
+            var updated = await _workplaceService.UpdateAsync(workplace);
+            if (!updated) return NotFound();
+            return NoContent();
         }
 
         // DELETE: api/Workplaces/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteWorkplace(int id)
         {
-            var workplace = await _context.Workplaces.FindAsync(id);
-            if (workplace == null)
-            {
-                return NotFound();
-            }
-
-            _context.Workplaces.Remove(workplace);
-            await _context.SaveChangesAsync();
-
+            var deleted = await _workplaceService.DeleteAsync(id);
+            if (!deleted) return NotFound();
             return NoContent();
-        }
-
-        private bool WorkplaceExists(int id)
-        {
-            return _context.Workplaces.Any(e => e.Id == id);
         }
     }
 }
