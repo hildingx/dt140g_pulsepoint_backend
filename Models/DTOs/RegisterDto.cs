@@ -1,5 +1,8 @@
 ﻿namespace PulsePoint.Models.DTOs
 {
+    /// <summary>
+    /// DTO för registrering. Används vid skapande av nya användare via /api/auth/register.
+    /// </summary>
     public class RegisterDto
     {
         public string Username { get; set; } = null!;

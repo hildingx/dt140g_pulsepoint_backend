@@ -1,53 +1,63 @@
-﻿using Microsoft.EntityFrameworkCore;
-using PulsePoint.Data;
-using PulsePoint.Models;
+﻿using PulsePoint.Models;
 
 namespace PulsePoint.Services
 {
-    public class WorkplaceService : IWorkplaceService
+    /// <summary>
+    /// Serviceklass för hantering av arbetsplatser.
+    /// Ansvarar för affärslogik och vidarebefordrar anrop till arbetsplats-repositoryt.
+    /// Används av WorkplacesController.
+    /// </summary>
+    public class WorkplaceService(IWorkplaceRepository repo) : IWorkplaceService
     {
-        private readonly PulsePointDbContext _context;
+        private readonly IWorkplaceRepository _repo = repo;
 
-        public WorkplaceService(PulsePointDbContext context)
+        /// <summary>
+        /// Hämtar alla arbetsplatser.
+        /// </summary>
+        /// <returns>En lista med alla arbetsplatser i databasen.</returns>
+        public Task<List<Workplace>> GetAllAsync()
         {
-            _context = context;
+            return _repo.GetAllAsync();
         }
 
-        public async Task<List<Workplace>> GetAllAsync()
+        /// <summary>
+        /// Hämtar en enskild arbetsplats baserat på ID.
+        /// </summary>
+        /// <param name="id">ID för arbetsplatsen som ska hämtas.</param>
+        /// <returns>Arbetsplatsen med matchande ID, eller null om den inte finns.</returns>
+        public Task<Workplace?> GetByIdAsync(int id)
         {
-            return await _context.Workplaces.ToListAsync();
+            return _repo.GetByIdAsync(id);
         }
 
-        public async Task<Workplace?> GetByIdAsync(int id)
+        /// <summary>
+        /// Skapar en ny arbetsplats.
+        /// </summary>
+        /// <param name="workplace">Arbetsplatsobjekt som ska sparas.</param>
+        /// <returns>Den skapade arbetsplatsen med tilldelat ID.</returns>
+        public Task<Workplace> CreateAsync(Workplace workplace)
         {
-            return await _context.Workplaces.FindAsync(id);
+            return _repo.AddAsync(workplace);
         }
 
-        public async Task<Workplace> CreateAsync(Workplace workplace)
+        /// <summary>
+        /// Uppdaterar en befintlig arbetsplats.
+        /// </summary>
+        /// <param name="workplace">Uppdaterade arbetsplatsdata (måste innehålla korrekt ID).</param>
+        /// <returns>True om uppdatering lyckades, annars false.</returns>
+        public Task<bool> UpdateAsync(Workplace workplace)
         {
-            _context.Workplaces.Add(workplace);
-            await _context.SaveChangesAsync();
-            return workplace;
+            return _repo.UpdateAsync(workplace.Id, workplace);
         }
 
-        public async Task<bool> UpdateAsync(Workplace workplace)
+        /// <summary>
+        /// Tar bort en arbetsplats baserat på ID.
+        /// </summary>
+        /// <param name="id">ID för arbetsplatsen som ska tas bort.</param>
+        /// <returns>True om borttagning lyckades, annars false.</returns>
+        public Task<bool> DeleteAsync(int id)
         {
-            if (!_context.Workplaces.Any(w => w.Id == workplace.Id))
-                return false;
-
-            _context.Entry(workplace).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<bool> DeleteAsync(int id)
-        {
-            var workplace = await _context.Workplaces.FindAsync(id);
-            if (workplace == null) return false;
-
-            _context.Workplaces.Remove(workplace);
-            await _context.SaveChangesAsync();
-            return true;
+            return _repo.DeleteAsync(id);
         }
     }
 }

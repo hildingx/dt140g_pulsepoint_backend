@@ -1,5 +1,9 @@
 ﻿namespace PulsePoint.Models.DTOs
 {
+    /// <summary>
+    /// DTO för att skapa eller uppdatera en health entry.
+    /// Används vid POST och PUT till /api/healthentries.
+    /// </summary>
     public class HealthEntryRequestDto
     {
         public int Mood { get; set; }

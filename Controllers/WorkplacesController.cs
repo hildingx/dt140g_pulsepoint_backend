@@ -12,18 +12,19 @@ using System.Threading.Tasks;
 
 namespace PulsePoint.Controllers
 {
+    /// Controller för hantering av arbetsplatser (Workplace).
+    /// Exponerar endpoints för att hämta, skapa, uppdatera och ta bort arbetsplatser.
     [Route("api/[controller]")]
     [ApiController]
-    public class WorkplacesController : ControllerBase
+    public class WorkplacesController(IWorkplaceService workplaceService) : ControllerBase
     {
-        private readonly IWorkplaceService _workplaceService;
+        private readonly IWorkplaceService _workplaceService = workplaceService;
 
-        public WorkplacesController(IWorkplaceService workplaceService)
-        {
-            _workplaceService = workplaceService;
-        }
-
-        // GET: api/Workplaces
+        /// <summary>
+        /// Hämtar en lista med alla arbetsplatser i systemet.
+        /// Används t.ex. för att visa tillgängliga arbetsplatser i ett registreringsformulär.
+        /// </summary>
+        /// <returns>En lista med arbetsplatser.</returns>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Workplace>>> GetWorkplaces()
         {
@@ -31,7 +32,12 @@ namespace PulsePoint.Controllers
             return Ok(workplaces);
         }
 
-        // POST: api/Workplaces
+        /// <summary>
+        /// Skapar en ny arbetsplats i systemet.
+        /// Endast tillgänglig för användare med rollen "admin".
+        /// </summary>
+        /// <param name="workplace">Det arbetsplatsobjekt som ska skapas.</param>
+        /// <returns>Den skapade arbetsplatsen med tilldelat ID.</returns>
         [HttpPost]
         [Authorize(Roles = "admin")]
         public async Task<ActionResult<Workplace>> PostWorkplace(Workplace workplace)
@@ -40,7 +46,13 @@ namespace PulsePoint.Controllers
             return CreatedAtAction(nameof(GetWorkplaces), new { id = created.Id }, created);
         }
 
-        // PUT: api/Workplaces/5
+        /// <summary>
+        /// Uppdaterar en befintlig arbetsplats.
+        /// Endast tillgänglig för användare med rollen "admin".
+        /// </summary>
+        /// <param name="id">ID för den arbetsplats som ska uppdateras.</param>
+        /// <param name="workplace">Uppdaterade arbetsplatsdata.</param>
+        /// <returns>NoContent om uppdatering lyckas, annars NotFound om ID inte hittas.</returns>
         [HttpPut("{id}")]
         [Authorize(Roles = "admin")]
         public async Task<IActionResult> PutWorkplace(int id, Workplace workplace)
@@ -50,7 +62,12 @@ namespace PulsePoint.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Workplaces/5
+        /// <summary>
+        /// Tar bort en arbetsplats baserat på ID.
+        /// Endast tillgänglig för användare med rollen "admin".
+        /// </summary>
+        /// <param name="id">ID för den arbetsplats som ska tas bort.</param>
+        /// <returns>NoContent om borttagning lyckas, annars NotFound om ID inte hittas.</returns>
         [HttpDelete("{id}")]
         [Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteWorkplace(int id)

@@ -9,24 +9,28 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Läs miljövariabler från .env
 LoadEnvFile();
 
-// Registrera controllers
+// Registrera controllers för att hantera inkommande HTTP-anrop
 builder.Services.AddControllers();
 
-// Registrera services
+// Registrera serviceklasser för injektion
 builder.Services.AddScoped<IHealthEntryService, HealthEntryService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IWorkplaceService, WorkplaceService>();
+
+// Registrera repository-klasser för databasåtkomst (som används av services)
 builder.Services.AddScoped<IHealthEntryRepository, HealthEntryRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IWorkplaceRepository, WorkplaceRepository>();
 
 // Konfigurera databaskoppling mot MySQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<PulsePointDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
-// Registrera Identity med anpassad User-modell och roller (int som nyckeltyp)
+// Registrera Identity med anpassad User-modell och roller
 builder.Services.AddIdentity<User, IdentityRole<int>>()
     .AddEntityFrameworkStores<PulsePointDbContext>()
     .AddDefaultTokenProviders();
@@ -34,6 +38,7 @@ builder.Services.AddIdentity<User, IdentityRole<int>>()
 // Registrera JWT-tjänst för token-generering 
 builder.Services.AddScoped<JwtService>();
 
+// Konfigurera JWT-autentisering som standard
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = "Bearer";
@@ -48,45 +53,43 @@ builder.Services.AddAuthentication(options =>
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
+        ValidateIssuer = true, // Kontrollera att token kommer från rätt utfärdare
+        ValidateAudience = true, // Kontrollra att token är avsedd för rätt mottagare
+        ValidateLifetime = true, // Kontrollera att token inte har gått ut
+        ValidateIssuerSigningKey = true, // Kontrollera signaturen
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString))
     };
 });
 
+// Aktivera auktorisering ( [Authorize] attribut )
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Läs konfiguration från JSON och miljövariabler
 builder.Configuration
     .SetBasePath(app.Environment.ContentRootPath)
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddUserSecrets<Program>() // Läs user secrets automatiskt
     .AddEnvironmentVariables();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
 
 app.UseHttpsRedirection();
 
+// Middleware för autentisering
 app.UseAuthentication();
+// Middleware för auktorisering
 app.UseAuthorization();
 
-// Mappa controllers till endpoints (API-rutter)
+// Mappa alla controller-endpoints
 app.MapControllers();
 
-// Skapa roller i databasen om de inte redan finns
+// Se till att roller (admin, manager och user) finns i db
 await SeedRoles(app);
 
 app.Run();
 
+// Funktion för att skapa roller vid uppstart om de saknas
 static async Task SeedRoles(WebApplication app)
 {
     using var scope = app.Services.CreateScope();
@@ -103,6 +106,7 @@ static async Task SeedRoles(WebApplication app)
     }
 }
 
+// Läs env-fil manuellt
 void LoadEnvFile(string path = ".env")
 {
     if (!File.Exists(path)) return;

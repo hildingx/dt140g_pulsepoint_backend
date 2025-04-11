@@ -1,19 +1,17 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using PulsePoint.Data;
 using PulsePoint.Models;
 using PulsePoint.Models.DTOs;
 using PulsePoint.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace PulsePoint.Controllers
 {
+    /// <summary>
+    /// API-kontroller för hantering av hälsoregistreringar (HealthEntries).
+    /// Tillåter inloggade användare att skapa, hämta, uppdatera och ta bort sina egna registreringar.
+    /// Manager-användare har även tillgång till aggregerad statistik för sin arbetsplats.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
@@ -26,7 +24,10 @@ namespace PulsePoint.Controllers
             _healthEntryService = healthEntryService;
         }
 
-        // GET: api/HealthEntries
+        /// <summary>
+        /// Hämtar alla health entries för den inloggade användaren.
+        /// GET: api/HealthEntries
+        /// </summary>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<HealthEntryResponseDto>>> GetHealthEntries()
         {
@@ -35,7 +36,10 @@ namespace PulsePoint.Controllers
             return Ok(entries);
         }
 
-        // GET: api/HealthEntries/5
+        /// <summary>
+        /// Hämtar en specifik health entry baserat på ID, för aktuell användare.
+        /// GET: api/HealthEntries/{id}
+        /// </summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<HealthEntry>> GetHealthEntry(int id)
         {
@@ -45,23 +49,26 @@ namespace PulsePoint.Controllers
             return Ok(entry);
         }
 
-        // PUT: api/HealthEntries/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        /// <summary>
+        /// Uppdaterar en befintlig health entry för användaren.
+        /// PUT: api/HealthEntries/{id}
+        /// </summary>
         [HttpPut("{id}")]
         public async Task<IActionResult> PutHealthEntry(int id, HealthEntryRequestDto dto)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
             var success = await _healthEntryService.UpdateEntryAsync(id, userId, dto);
 
             if (!success)
-                return NotFound(); // Antingen entry saknas, inte användarens, eller fel vid update
+                return NotFound(); // Antingen entry saknas eller ej användarens
 
             return NoContent();
         }
 
-        // POST: api/HealthEntries
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        /// <summary>
+        /// Skapar en ny health entry för användaren.
+        /// POST: api/HealthEntries
+        /// </summary>
         [HttpPost]
         public async Task<IActionResult> PostHealthEntry(HealthEntryRequestDto dto)
         {
@@ -71,9 +78,10 @@ namespace PulsePoint.Controllers
             return CreatedAtAction(nameof(GetHealthEntry), new { id = response.Id }, response);
         }
 
-
-
-        // DELETE: api/HealthEntries/5
+        /// <summary>
+        /// Tar bort en health entry (om den tillhör användaren).
+        /// DELETE: api/HealthEntries/{id}
+        /// </summary>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteHealthEntry(int id)
         {
@@ -86,7 +94,10 @@ namespace PulsePoint.Controllers
             return NoContent();
         }
 
-
+        /// <summary>
+        /// Hämtar aggregerad statistik per dag för alla användare på samma workplace som den inloggade managern.
+        /// GET: api/HealthEntries/stats/daily
+        /// </summary>
         [HttpGet("stats/daily")]
         [Authorize(Roles = "manager")]
         public async Task<IActionResult> GetDailyStatsForWorkplace()

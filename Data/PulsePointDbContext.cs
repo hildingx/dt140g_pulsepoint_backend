@@ -5,15 +5,23 @@ using PulsePoint.Models;
 
 namespace PulsePoint.Data
 {
-    // Databaskontext som hanterar Identity + applikationens modeller
+    /// <summary>
+    /// Databaskontext för PulsePoint-applikationen.
+    /// Ärver från IdentityDbContext för att hantera användare, roller och autentisering via Identity.
+    /// Innehåller även DbSets för applikationens egna modeller: Workplaces och HealthEntries.
+    /// </summary>
     public class PulsePointDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     {
         public PulsePointDbContext(DbContextOptions<PulsePointDbContext> options) : base(options) { }
 
-        // Tabell för arbetsplatser
+        /// <summary>
+        /// Representerar tabellen för arbetsplatser.
+        /// </summary>
         public DbSet<Workplace> Workplaces { get; set; }
 
-        // Tabell för användarnas hälsoregistreringar
+        /// <summary>
+        /// Representerar tabellen för användarnas hälsoregistreringar.
+        /// </summary>
         public DbSet<HealthEntry> HealthEntries { get; set; }
     }
 }

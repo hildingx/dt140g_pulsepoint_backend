@@ -8,6 +8,9 @@ using System.Security.Claims;
 
 namespace PulsePoint.Controllers
 {
+    /// <summary>
+    /// Controller för autentisering. Hanterar registrering, inloggning och hämtning av information om inloggad användare.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase
@@ -29,7 +32,11 @@ namespace PulsePoint.Controllers
             _authService = authService;
         }
 
-        // POST: api/auth/register
+        /// <summary>
+        /// Registrerar en ny användare.
+        /// </summary>
+        /// <param name="dto">Data från frontend: användarnamn, lösenord, förnamn, efternamn, arbetsplats-ID.</param>
+        /// <returns>200 OK om lyckad registrering, annars 400 med felmeddelanden.</returns>
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
@@ -41,7 +48,11 @@ namespace PulsePoint.Controllers
             return Ok(new { message = "User registered successfully." });
         }
 
-        // POST: api/auth/login
+        /// <summary>
+        /// Loggar in en användare och returnerar en JWT-token.
+        /// </summary>
+        /// <param name="dto">Användarnamn och lösenord.</param>
+        /// <returns>JWT-token och användarinformation om inloggning lyckas, annars 400.</returns>
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
@@ -58,6 +69,10 @@ namespace PulsePoint.Controllers
             });
         }
 
+        /// <summary>
+        /// Hämtar information om den inloggade användaren baserat på token.
+        /// </summary>
+        /// <returns>Användarens ID, användarnamn, namn, arbetsplats och roller.</returns>
         [HttpGet("me")]
         [Authorize]
         public async Task<IActionResult> Me()

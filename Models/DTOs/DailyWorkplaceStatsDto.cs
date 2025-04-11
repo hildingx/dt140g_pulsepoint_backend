@@ -1,5 +1,9 @@
 ﻿namespace PulsePoint.Models.DTOs
 {
+    /// <summary>
+    /// DTO för aggregerad statistik per dag för en arbetsplats.
+    /// Används av managers vid GET från /api/healthentries/stats/daily.
+    /// </summary>
     public class DailyWorkplaceStatsDto
     {
         public DateOnly Date { get; set; }

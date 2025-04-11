@@ -1,5 +1,9 @@
 ﻿namespace PulsePoint.Models.DTOs
 {
+    /// <summary>
+    /// DTO för att returnera en health entry till klienten.
+    /// Används vid GET från /api/healthentries och efter skapande via POST.
+    /// </summary>
     public class HealthEntryResponseDto
     {
         public int Id { get; set; }
