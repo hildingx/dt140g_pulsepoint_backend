@@ -43,6 +43,10 @@ namespace PulsePoint.Controllers
         public async Task<ActionResult<Workplace>> PostWorkplace(Workplace workplace)
         {
             var created = await _workplaceService.CreateAsync(workplace);
+
+            if (created == null)
+                return Conflict(new { message = "Arbetsplats med samma namn finns redan." });
+
             return CreatedAtAction(nameof(GetWorkplaces), new { id = created.Id }, created);
         }
 

@@ -35,9 +35,18 @@ namespace PulsePoint.Services
         /// </summary>
         /// <param name="workplace">Arbetsplatsobjekt som ska sparas.</param>
         /// <returns>Den skapade arbetsplatsen med tilldelat ID.</returns>
-        public Task<Workplace> CreateAsync(Workplace workplace)
+        public async Task<Workplace> CreateAsync(Workplace workplace)
         {
-            return _repo.AddAsync(workplace);
+            // Kontrollera om arbetsplatsnamnet redan finns
+            var all = await _repo.GetAllAsync();
+            if (all.Any(w => w.Name.Trim().Equals(workplace.Name.Trim(), StringComparison.OrdinalIgnoreCase)))
+            {
+                return null; // eller kasta ett undantag beroende på stil
+            }
+
+            // Trimma namnet för att ta bort onödiga mellanslag
+            workplace.Name = workplace.Name.Trim();
+            return await _repo.AddAsync(workplace);
         }
 
         /// <summary>
