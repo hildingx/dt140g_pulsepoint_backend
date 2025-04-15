@@ -91,6 +91,12 @@ namespace PulsePoint.Services
         /// <returns>DTO med sparad entry</returns>
         public async Task<HealthEntryResponseDto> CreateEntryAsync(int userId, HealthEntryRequestDto dto)
         {
+            var existingEntry = await _repo.GetByUserIdAsync(userId);
+            if (existingEntry.Any(e => e.Date.Date == DateTime.Today))
+            {
+                return null;
+            }
+
             var entry = new HealthEntry
             {
                 Mood = dto.Mood,

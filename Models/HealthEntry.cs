@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace PulsePoint.Models
 {
@@ -10,13 +11,13 @@ namespace PulsePoint.Models
     {
         public int Id { get; set; }
 
-        public int Mood { get; set; }          // Hur användaren mår (ex. 1–5)
-        public int Sleep { get; set; }         // Sömnkvalitet (ex. 1–5)
-        public int Stress { get; set; }        // Stressnivå (ex. 1–5)
-        public int Activity { get; set; }      // Fysisk aktivitet (ex. 1–5)
-        public int Nutrition { get; set; }     // Kosthållning (ex. 1–5)
+        public int Mood { get; set; }
+        public int Sleep { get; set; }
+        public int Stress { get; set; }
+        public int Activity { get; set; }
+        public int Nutrition { get; set; }
 
-        public DateTime Date { get; set; }     // Datum för inmatningen (sätts automatiskt)
+        public DateTime Date { get; set; }
 
         public int UserId { get; set; }        // Foreign key till användare
 

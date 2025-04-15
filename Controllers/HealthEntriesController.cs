@@ -72,8 +72,14 @@ namespace PulsePoint.Controllers
         [HttpPost]
         public async Task<IActionResult> PostHealthEntry(HealthEntryRequestDto dto)
         {
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
+
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var response = await _healthEntryService.CreateEntryAsync(userId, dto);
+
+            if (response is null)
+                return BadRequest(new { message = "Du har redan registrerat hälsodata för idag." });
 
             return CreatedAtAction(nameof(GetHealthEntry), new { id = response.Id }, response);
         }
