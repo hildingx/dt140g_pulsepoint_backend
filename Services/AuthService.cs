@@ -21,6 +21,24 @@ namespace PulsePoint.Services
         /// <returns>True om lyckad registrering, annars en lista med fel</returns>
         public async Task<(bool Success, IEnumerable<string> Errors)> RegisterAsync(RegisterDto dto)
         {
+            // Kolla om användarnamnet redan är taget
+            var existingUser = await _userRepo.FindByUsernameAsync(dto.Username);
+            if (existingUser != null)
+            {
+                return (false, new[] { "Användarnamnet är redan taget." });
+            }
+
+            // Kolla om arbetsplats-id finns
+            var workplaceExists = await _userRepo.WorkplaceExistsAsync(dto.WorkplaceId);
+            if (!workplaceExists)
+            {
+                return (false, new List<string> { "Ogiltigt WorkplaceId." });
+            }
+
+            dto.Username = dto.Username.Trim();
+            dto.FirstName = dto.FirstName?.Trim();
+            dto.LastName = dto.LastName?.Trim();
+
             // Skapa ny User-objekt baserat på data från klienten
             var user = new User
             {

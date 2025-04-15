@@ -44,5 +44,12 @@ namespace PulsePoint.Services
         /// </summary>
         Task<List<HealthEntry>> GetHealthEntriesForManagerWorkplaceAsync(int managerUserId);
 
+        /// <summary>
+        /// Kontrollerar om en angiven arbetsplats finns i databasen.
+        /// </summary>
+        /// <param name="workplaceId">ID för arbetsplatsen</param>
+        /// <returns>True om arbetsplatsen finns, annars false</returns>
+        Task<bool> WorkplaceExistsAsync(int workplaceId);
+
     }
 }

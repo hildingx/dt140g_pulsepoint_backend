@@ -83,5 +83,15 @@ namespace PulsePoint.Services
                 .SelectMany(u => u.Workplace.Users.SelectMany(x => x.HealthEntries))
                 .ToListAsync();
         }
+
+        /// <summary>
+        /// Kontrollerar om en angiven arbetsplats (WorkplaceId) existerar i databasen.
+        /// </summary>
+        /// <param name="workplaceId">ID för arbetsplatsen</param>
+        /// <returns>True om arbetsplatsen finns, annars false</returns>
+        public async Task<bool> WorkplaceExistsAsync(int workplaceId)
+        {
+            return await _context.Workplaces.AnyAsync(w => w.Id == workplaceId);
+        }
     }
 }
