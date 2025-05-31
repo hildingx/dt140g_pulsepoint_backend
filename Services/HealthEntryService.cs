@@ -26,7 +26,7 @@ namespace PulsePoint.Services
         {
             var entries = await _repo.GetByUserIdAsync(userId);
 
-            return entries.Select(e => new HealthEntryResponseDto
+            return [.. entries.Select(e => new HealthEntryResponseDto
             {
                 Id = e.Id,
                 Mood = e.Mood,
@@ -35,7 +35,7 @@ namespace PulsePoint.Services
                 Activity = e.Activity,
                 Nutrition = e.Nutrition,
                 Date = e.Date
-            }).ToList();
+            })];
         }
 
         /// <summary>
@@ -147,11 +147,11 @@ namespace PulsePoint.Services
                 .Select(g => new DailyWorkplaceStatsDto
                 {
                     Date = DateOnly.FromDateTime(g.Key),
-                    AverageMood = g.Average(e => e.Mood),
-                    AverageSleep = g.Average(e => e.Sleep),
-                    AverageStress = g.Average(e => e.Stress),
-                    AverageActivity = g.Average(e => e.Activity),
-                    AverageNutrition = g.Average(e => e.Nutrition),
+                    AverageMood = Math.Round(g.Average(e => e.Mood), 2),
+                    AverageSleep = Math.Round(g.Average(e => e.Sleep), 2),
+                    AverageStress = Math.Round(g.Average(e => e.Stress), 2),
+                    AverageActivity = Math.Round(g.Average(e => e.Activity), 2),
+                    AverageNutrition = Math.Round(g.Average(e => e.Nutrition), 2),
                     EntryCount = g.Count()
                 })
                 .OrderBy(s => s.Date)

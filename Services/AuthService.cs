@@ -1,4 +1,6 @@
-﻿using PulsePoint.Models;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using PulsePoint.Models;
 using PulsePoint.Models.DTOs;
 using System.Security.Claims;
 
