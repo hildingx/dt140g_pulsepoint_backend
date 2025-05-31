@@ -7,10 +7,10 @@ using PulsePoint.Repositories;
 using PulsePoint.Services;
 using System.Text;
 
-var builder = WebApplication.CreateBuilder(args);
-
 // Läs miljövariabler från .env
 LoadEnvFile();
+
+var builder = WebApplication.CreateBuilder(args);
 
 // Registrera controllers för att hantera inkommande HTTP-anrop
 builder.Services.AddControllers();
